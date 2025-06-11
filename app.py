@@ -80,6 +80,29 @@ def ver_error():
     except:
         return "No hay errores registrados aún."
 
+@app.route("/test_input", methods=["GET"])
+def test_input():
+    test_html = "<html><head><title>Test</title></head><body><h1>Welcome</h1><form><input name='username'></form></body></html>"
+    test_img_path = "/tmp/test_ocr_img.png"
+
+    try:
+        from PIL import Image, ImageDraw
+        img = Image.new("RGB", (200, 60), color=(255, 255, 255))
+        draw = ImageDraw.Draw(img)
+        draw.text((10, 20), "Login Now", fill=(0, 0, 0))
+        img.save(test_img_path)
+
+        html_path = "/tmp/test_source.html"
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(test_html)
+
+        from predict_crawl import predict
+        result = predict(test_img_path, html_path)
+        return jsonify({"prediction": int(result[0]) if result else "Error: no prediction returned"})
+    except Exception as e:
+        with open("/tmp/error.log", "a", encoding="utf-8") as log:
+            log.write("❌ Error en /test_input: " + str(e) + "\n")
+        return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=False)
