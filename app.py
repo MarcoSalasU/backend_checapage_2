@@ -1,9 +1,9 @@
-
 from flask import Flask, request, jsonify
 import base64
 import os
 import uuid
 import predict_crawl
+import traceback
 
 app = Flask(__name__)
 
@@ -42,15 +42,20 @@ def analyze_content():
         with open(img_path, "wb") as f:
             f.write(base64.b64decode(img_base64))
 
-        # Llamar a predict_crawl
-        result = predict_crawl.predict(img_path, html_path)
-
-        if result is None or len(result) == 0:
-            return jsonify({"error": "Model could not generate a prediction"}), 500
-
-        return jsonify({"prediction": int(result[0])})  # 0: seguro, 1: malicioso
+        # Llamar a predict_crawl con validación y log de errores
+        try:
+            result = predict_crawl.predict(img_path, html_path)
+            if result is None or not isinstance(result, list) or len(result) == 0:
+                raise ValueError("Modelo no devolvió un resultado válido")
+            return jsonify({"prediction": int(result[0])})
+        except Exception as model_error:
+            print("🔥 ERROR EN EL MODELO:")
+            print(traceback.format_exc())
+            return jsonify({"error": "Error en el modelo: " + str(model_error)}), 500
 
     except Exception as e:
+        print("🔥 ERROR GENERAL:")
+        print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
