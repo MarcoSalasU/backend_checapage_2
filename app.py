@@ -30,6 +30,11 @@ def analyze_content():
         html_content = data.get("html")
         img_base64 = data.get("img")
 
+        # Log de longitudes
+        with open("/tmp/error.log", "a", encoding="utf-8") as log:
+            log.write("🧪 HTML length: " + str(len(html_content)) + "\n")
+            log.write("🧪 IMG length: " + str(len(img_base64)) + "\n")
+
         if not html_content or not img_base64:
             return jsonify({"error": "Missing html or img data"}), 400
 
@@ -47,14 +52,23 @@ def analyze_content():
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-        # Guardar imagen base64
+        # Guardar imagen base64 con manejo de errores mejorado
         img_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.png")
+        try:
+            img_data = base64.b64decode(img_base64)
+        except Exception as e:
+            with open("/tmp/error.log", "a", encoding="utf-8") as log:
+                log.write("❌ Error al decodificar imagen: " + str(e) + "\n")
+            return jsonify({"error": "Imagen inválida"}), 400
+
         with open(img_path, "wb") as f:
-            f.write(base64.b64decode(img_base64))
+            f.write(img_data)
 
         # Llamar a predict_crawl con validación y log de errores
         try:
             result = predict_crawl.predict(img_path, html_path)
+            with open("/tmp/error.log", "a", encoding="utf-8") as log:
+                log.write("✅ predict() se ejecutó en /analyze_content\n")
             if result is None or not isinstance(result, list) or len(result) == 0:
                 raise ValueError("Modelo no devolvió un resultado válido")
             return jsonify({"prediction": int(result[0])})
@@ -66,8 +80,8 @@ def analyze_content():
     except Exception as e:
         error_trace = traceback.format_exc()
         with open("/tmp/error.log", "a", encoding="utf-8") as f:
-            f.write("🔥 ERROR GENERAL:\\n")
-            f.write(error_trace + "\\n")
+            f.write("🔥 ERROR GENERAL:\n")
+            f.write(error_trace + "\n")
         return jsonify({"error": str(e)}), 500
 
 
