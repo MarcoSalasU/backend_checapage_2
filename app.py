@@ -4,6 +4,16 @@ import os
 import uuid
 import predict_crawl
 import traceback
+import nltk
+
+# Descargar recursos necesarios de NLTK
+try:
+    nltk.download('punkt')
+    nltk.download('stopwords')
+    nltk.download('averaged_perceptron_tagger')
+except Exception as e:
+    with open("/tmp/error.log", "a", encoding="utf-8") as f:
+        f.write("❌ Error descargando recursos NLTK: " + str(e) + "\n")
 
 app = Flask(__name__)
 
@@ -55,7 +65,7 @@ def analyze_content():
 
     except Exception as e:
         error_trace = traceback.format_exc()
-        with open("error.log", "a", encoding="utf-8") as f:
+        with open("/tmp/error.log", "a", encoding="utf-8") as f:
             f.write("🔥 ERROR GENERAL:\\n")
             f.write(error_trace + "\\n")
         return jsonify({"error": str(e)}), 500
@@ -64,7 +74,7 @@ def analyze_content():
 @app.route("/ver_error")
 def ver_error():
     try:
-        with open("error.log", "r", encoding="utf-8") as f:
+        with open("/tmp/error.log", "r", encoding="utf-8") as f:
             contenido = f.read()
         return f"<pre>{contenido}</pre>"
     except:
