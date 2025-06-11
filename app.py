@@ -82,26 +82,42 @@ def ver_error():
 
 @app.route("/test_input", methods=["GET"])
 def test_input():
-    test_html = "<html><head><title>Test</title></head><body><h1>Welcome</h1><form><input name='username'></form></body></html>"
-    test_img_path = "/tmp/test_ocr_img.png"
+    from PIL import Image, ImageDraw
+    import traceback
 
     try:
-        from PIL import Image, ImageDraw
+        # Crear imagen de prueba
+        test_img_path = "/tmp/test_ocr_img.png"
         img = Image.new("RGB", (200, 60), color=(255, 255, 255))
         draw = ImageDraw.Draw(img)
         draw.text((10, 20), "Login Now", fill=(0, 0, 0))
         img.save(test_img_path)
 
-        html_path = "/tmp/test_source.html"
-        with open(html_path, "w", encoding="utf-8") as f:
+        # Crear HTML de prueba
+        test_html_path = "/tmp/test_source.html"
+        test_html = "<html><head><title>Test</title></head><body><h1>Welcome</h1><form><input name='user'></form></body></html>"
+        with open(test_html_path, "w", encoding="utf-8") as f:
             f.write(test_html)
 
+        # Log intermedio
+        with open("/tmp/error.log", "a", encoding="utf-8") as log:
+            log.write("✅ Imagen y HTML de prueba creados correctamente.\n")
+
+        # Ejecutar predicción
         from predict_crawl import predict
-        result = predict(test_img_path, html_path)
-        return jsonify({"prediction": int(result[0]) if result else "Error: no prediction returned"})
+        result = predict(test_img_path, test_html_path)
+
+        if result is None:
+            with open("/tmp/error.log", "a", encoding="utf-8") as log:
+                log.write("⚠️ predict() retornó None\n")
+            return jsonify({"prediction": "Error: no prediction returned"})
+
+        return jsonify({"prediction": int(result[0])})
+
     except Exception as e:
         with open("/tmp/error.log", "a", encoding="utf-8") as log:
-            log.write("❌ Error en /test_input: " + str(e) + "\n")
+            log.write("❌ EXCEPCIÓN EN /test_input:\n")
+            log.write(traceback.format_exc() + "\n")
         return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
