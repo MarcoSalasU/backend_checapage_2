@@ -54,9 +54,22 @@ def analyze_content():
             return jsonify({"error": "Error en el modelo: " + str(model_error)}), 500
 
     except Exception as e:
-        print("🔥 ERROR GENERAL:")
-        print(traceback.format_exc())
+        error_trace = traceback.format_exc()
+        with open("error.log", "a", encoding="utf-8") as f:
+            f.write("🔥 ERROR GENERAL:\\n")
+            f.write(error_trace + "\\n")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/ver_error")
+def ver_error():
+    try:
+        with open("error.log", "r", encoding="utf-8") as f:
+            contenido = f.read()
+        return f"<pre>{contenido}</pre>"
+    except:
+        return "No hay errores registrados aún."
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=False)
