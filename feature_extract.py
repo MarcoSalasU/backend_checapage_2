@@ -12,7 +12,6 @@ from bs4 import BeautifulSoup
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 from nltk import tag
-from autocorrect import spell
 
 import WORD_TERM_KEYS
 import re
@@ -86,7 +85,7 @@ def get_structure_html_text(html_path):
 
 def text_embedding_into_vector(txt_str):
     texts = txt_str.split(' ')
-    texts = [spell(w).lower() for w in texts]
+    texts = [w.lower() for w in texts if w.isalpha()]
     embedding_vector = [0] * (len(WORD_TERM) + 1)
     for elem in texts:
         index = WORD_TERM.index(elem) if elem in WORD_TERM else -1

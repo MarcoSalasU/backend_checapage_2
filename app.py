@@ -20,8 +20,26 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "tmp_inputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-MAX_HTML_SIZE = 1_500_000  # 
-MAX_IMAGE_SIZE = 9_000_000  # ~9MB base64-encoded
+MAX_HTML_SIZE = 1_500_000
+MAX_IMAGE_SIZE = 9_000_000
+
+# Cargar whitelist desde CSV
+def load_whitelist(path="whitelist.csv"):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return set(line.strip().lower().replace('"', '') for line in f if line.strip())
+    except Exception as e:
+        with open("/tmp/error.log", "a", encoding="utf-8") as log:
+            log.write("❌ Error al cargar whitelist: " + str(e) + "\n")
+        return set()
+
+WHITELIST = load_whitelist()
+
+def pertenece_a_whitelist(html_text):
+    for url in WHITELIST:
+        if url in html_text.lower():
+            return True
+    return False
 
 @app.route("/analyze_content", methods=["POST"])
 def analyze_content():
@@ -30,11 +48,9 @@ def analyze_content():
         html_content = data.get("html")
         img_base64 = data.get("img")
 
-        # Log de tamaños
         print("Tamaño HTML:", len(html_content))
         print("Tamaño IMG base64:", len(img_base64))
 
-        # Log de longitudes
         with open("/tmp/error.log", "a", encoding="utf-8") as log:
             log.write("🧪 HTML length: " + str(len(html_content)) + "\n")
             log.write("🧪 IMG length: " + str(len(img_base64)) + "\n")
@@ -49,14 +65,20 @@ def analyze_content():
             return jsonify({"error": "Image data too large"}), 413
 
         if not img_base64.startswith("iVBOR") and not img_base64.startswith("/9j/"):
-            return jsonify({"error": "Unsupported image format"}), 415  # PNG or JPEG expected
+            return jsonify({"error": "Unsupported image format"}), 415
 
-        # Guardar HTML
+        # VERIFICACIÓN CONTRA WHITELIST
+        if pertenece_a_whitelist(html_content):
+            return jsonify({
+                "prediction": 0,
+                "probabilidad": 0.0,
+                "whitelisted": True
+            })
+
         html_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.html")
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-        # Guardar imagen base64 con manejo de errores mejorado
         img_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.png")
         try:
             img_data = base64.b64decode(img_base64)
@@ -68,7 +90,6 @@ def analyze_content():
         with open(img_path, "wb") as f:
             f.write(img_data)
 
-        # Llamar a predict_crawl con validación y log de errores
         try:
             pred, prob = predict_crawl.predict(img_path, html_path)
 
@@ -95,7 +116,6 @@ def analyze_content():
             f.write(error_trace + "\n")
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/ver_error")
 def ver_error():
     try:
@@ -111,24 +131,20 @@ def test_input():
     import traceback
 
     try:
-        # Crear imagen de prueba
         test_img_path = "/tmp/test_ocr_img.png"
         img = Image.new("RGB", (200, 60), color=(255, 255, 255))
         draw = ImageDraw.Draw(img)
         draw.text((10, 20), "Login Now", fill=(0, 0, 0))
         img.save(test_img_path)
 
-        # Crear HTML de prueba
         test_html_path = "/tmp/test_source.html"
         test_html = "<html><head><title>Test</title></head><body><h1>Welcome</h1><form><input name='user'></form></body></html>"
         with open(test_html_path, "w", encoding="utf-8") as f:
             f.write(test_html)
 
-        # Log intermedio
         with open("/tmp/error.log", "a", encoding="utf-8") as log:
             log.write("✅ Imagen y HTML de prueba creados correctamente.\n")
 
-        # Ejecutar predicción
         from predict_crawl import predict
         result = predict(test_img_path, test_html_path)
 
