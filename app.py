@@ -20,8 +20,8 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "tmp_inputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-MAX_HTML_SIZE = 500_000  # ~500KB
-MAX_IMAGE_SIZE = 3_000_000  # ~1MB base64-encoded
+MAX_HTML_SIZE = 1_500_000  # 
+MAX_IMAGE_SIZE = 9_000_000  # ~9MB base64-encoded
 
 @app.route("/analyze_content", methods=["POST"])
 def analyze_content():
@@ -29,6 +29,10 @@ def analyze_content():
         data = request.get_json()
         html_content = data.get("html")
         img_base64 = data.get("img")
+
+        # Log de tamaños
+        print("Tamaño HTML:", len(html_content))
+        print("Tamaño IMG base64:", len(img_base64))
 
         # Log de longitudes
         with open("/tmp/error.log", "a", encoding="utf-8") as log:
