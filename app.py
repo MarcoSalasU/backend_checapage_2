@@ -21,7 +21,7 @@ UPLOAD_FOLDER = "tmp_inputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 MAX_HTML_SIZE = 500_000  # ~500KB
-MAX_IMAGE_SIZE = 1_000_000  # ~1MB base64-encoded
+MAX_IMAGE_SIZE = 3_000_000  # ~1MB base64-encoded
 
 @app.route("/analyze_content", methods=["POST"])
 def analyze_content():
@@ -66,12 +66,19 @@ def analyze_content():
 
         # Llamar a predict_crawl con validación y log de errores
         try:
-            result = predict_crawl.predict(img_path, html_path)
+            pred, prob = predict_crawl.predict(img_path, html_path)
+
+            if pred is None:
+                raise ValueError("Modelo no devolvió una predicción")
+
             with open("/tmp/error.log", "a", encoding="utf-8") as log:
-                log.write("✅ predict() se ejecutó en /analyze_content\n")
-            if result is None or not isinstance(result, list) or len(result) == 0:
-                raise ValueError("Modelo no devolvió un resultado válido")
-            return jsonify({"prediction": int(result[0])})
+                log.write(f"✅ Resultado: {pred}, prob: {prob}\n")
+                log.write(f"✅ prediction enviada: {pred}, prob: {prob}\n")
+
+            return jsonify({
+                "prediction": int(pred),
+                "probabilidad": float(prob)
+            })
         except Exception as model_error:
             print("🔥 ERROR EN EL MODELO:")
             print(traceback.format_exc())

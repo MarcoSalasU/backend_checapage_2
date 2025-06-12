@@ -2,18 +2,13 @@ import joblib
 from feature_extract import extract_feature_vector
 
 def predict(img_path, html_path):
-    print("📥 Iniciando extracción de features...")
     vector = extract_feature_vector(img_path, html_path)
 
     if vector is None:
-        print("⚠️ Feature vector no se pudo generar.")
-        return None
+        return None, None
 
-    print("✅ Feature vector generado. Cargando modelo...")
     forest = joblib.load('saved_models/forest.pkl')
+    prediction = forest.predict([vector])[0]
+    probabilidad = forest.predict_proba([vector])[0][1]  # clase 1 = malicioso
 
-    print("🧠 Ejecutando predicción...")
-    prediction = forest.predict([vector])
-
-    print("✅ Predicción final:", prediction)
-    return prediction
+    return prediction, probabilidad
