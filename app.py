@@ -5,6 +5,7 @@ import uuid
 import predict_crawl
 import traceback
 import nltk
+import re
 
 # Descargar recursos necesarios de NLTK
 try:
@@ -36,8 +37,9 @@ def load_whitelist(path="whitelist.csv"):
 WHITELIST = load_whitelist()
 
 def pertenece_a_whitelist(html_text):
-    for url in WHITELIST:
-        if url in html_text.lower():
+    for dominio in WHITELIST:
+        patron = rf"https?://(www\.)?{re.escape(dominio)}"
+        if re.search(patron, html_text.lower()):
             return True
     return False
 
