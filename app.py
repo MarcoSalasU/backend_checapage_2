@@ -21,7 +21,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "tmp_inputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-MAX_HTML_SIZE = 1_500_000
+MAX_HTML_SIZE = 9_000_000
 MAX_IMAGE_SIZE = 9_000_000
 
 # Cargar whitelist desde CSV

@@ -53,11 +53,18 @@ document.getElementById("analizarContenidoBtn").addEventListener("click", () => 
   resultadoBox.className = "status-box status-default";
 
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, { tipo: "capturar_html_y_img" }, (response) => {
+    chrome.tabs.sendMessage(tabs[0].id, { tipo: "capturar_html_y_img_y_iframes" }, (response) => {
       if (chrome.runtime.lastError) {
         console.error("❌ Error al conectar con content_script:", chrome.runtime.lastError.message);
         resultadoBox.textContent = "⚠️ No se pudo obtener contenido.";
         resultadoBox.className = "status-box status-red";
+        estaAnalizando = false;
+        return;
+      }
+
+      if (response && response.iframes && response.iframes > 0) {
+        resultadoBox.innerHTML = `⚠️ Se detectaron <strong>${response.iframes}</strong> iframe(s) incrustados.<br><strong>¡Cuidado!</strong> Esta página contiene contenido embebido, lo que podría indicar riesgo si proviene de otro dominio.`;
+        resultadoBox.className = "status-box status-yellow";
         estaAnalizando = false;
         return;
       }
