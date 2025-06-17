@@ -54,6 +54,8 @@ document.getElementById("analizarContenidoBtn").addEventListener("click", () => 
 
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     chrome.tabs.sendMessage(tabs[0].id, { tipo: "capturar_html_y_img_y_iframes" }, (response) => {
+      console.log("📤 Respuesta content_script:", response);
+      
       if (chrome.runtime.lastError) {
         console.error("❌ Error al conectar con content_script:", chrome.runtime.lastError.message);
         resultadoBox.textContent = "⚠️ No se pudo obtener contenido.";
