@@ -98,6 +98,10 @@ def analyze_content():
             if pred is None:
                 raise ValueError("Modelo no devolvió una predicción")
 
+            # 📌 Penalizar si detectamos HTTP en el contenido
+            if "http://" in html_content.lower():
+                prob = min(prob + 0.10, 1.0)  # Nunca superar 100%
+
             with open("/tmp/error.log", "a", encoding="utf-8") as log:
                 log.write(f"✅ Resultado: {pred}, prob: {prob}\n")
                 log.write(f"✅ prediction enviada: {pred}, prob: {prob}\n")

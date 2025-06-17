@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Importaciones para procesamiento de imágenes y texto
 try:
     import Image
 except ImportError:
     from PIL import Image
 
-import pytesseract
-from bs4 import BeautifulSoup
-
+import pytesseract  # Para OCR (reconocimiento de texto en imágenes)
+from bs4 import BeautifulSoup  # Para parsear HTML
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 from nltk import tag
@@ -17,10 +17,17 @@ import WORD_TERM_KEYS
 import re
 import os
 
+# Vocabulario predefinido para vectorización
 WORD_TERM = WORD_TERM_KEYS.WORD_TERM
 pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
 
 def get_img_text_ocr(img_path):
+    """
+    Extrae texto de una imagen usando OCR
+    - Procesa la imagen para obtener texto
+    - Elimina palabras comunes y caracteres especiales
+    - Retorna texto limpio y procesado
+    """
     try:
         img = Image.open(img_path)
         text = pytesseract.image_to_string(img, lang='eng')
@@ -36,6 +43,12 @@ def get_img_text_ocr(img_path):
         return ""
 
 def get_structure_html_text(html_path):
+    """
+    Analiza la estructura HTML de una página
+    - Extrae texto de diferentes elementos (encabezados, párrafos, enlaces)
+    - Analiza formularios y sus atributos
+    - Procesa el texto para eliminar palabras comunes
+    """
     try:
         with open(html_path, 'r', encoding='utf-8') as myfile:
             data = myfile.read()
@@ -84,6 +97,11 @@ def get_structure_html_text(html_path):
         return "", 0, ""
 
 def text_embedding_into_vector(txt_str):
+    """
+    Convierte texto en un vector numérico
+    - Crea un vector de características basado en el vocabulario predefinido
+    - Cuenta la frecuencia de cada palabra
+    """
     texts = txt_str.split(' ')
     texts = [w.lower() for w in texts if w.isalpha()]
     embedding_vector = [0] * (len(WORD_TERM) + 1)
@@ -93,6 +111,11 @@ def text_embedding_into_vector(txt_str):
     return embedding_vector
 
 def feature_vector_extraction(c):
+    """
+    Función principal que extrae todas las características
+    - Combina características de imagen, texto y formularios
+    - Crea un vector final para análisis
+    """
     if os.path.exists(c.web_source) and os.path.exists(c.web_img):
         try:
             img_text = get_img_text_ocr(c.web_img)
@@ -112,9 +135,14 @@ def feature_vector_extraction_from_img_html(img, html):
         try:
             img_text = get_img_text_ocr(img)
             text_word_str, num_of_forms, attr_word_str = get_structure_html_text(html)
+
             img_v = text_embedding_into_vector(img_text)
             txt_v = text_embedding_into_vector(text_word_str)
             form_v = text_embedding_into_vector(attr_word_str)
+
+            # 🔥 Ponderación: Imagen (30%) - HTML (100%)
+            img_v = [0.3 * val for val in img_v]
+
             final_v = img_v + txt_v + form_v + [num_of_forms]
             return final_v
         except Exception as e:
