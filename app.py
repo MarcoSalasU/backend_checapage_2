@@ -51,23 +51,41 @@ def analyze_content():
         img_base64 = data.get("img")
 
         print("Tamaño HTML:", len(html_content))
-        print("Tamaño IMG base64:", len(img_base64))
+        if img_base64:
+            print("Tamaño IMG base64:", len(img_base64))
 
         with open("/tmp/error.log", "a", encoding="utf-8") as log:
             log.write("🧪 HTML length: " + str(len(html_content)) + "\n")
-            log.write("🧪 IMG length: " + str(len(img_base64)) + "\n")
+            if img_base64:
+                log.write("🧪 IMG length: " + str(len(img_base64)) + "\n")
 
-        if not html_content or not img_base64:
-            return jsonify({"error": "Missing html or img data"}), 400
+        # Solo validar si HTML existe
+        if not html_content:
+            return jsonify({"error": "No se recibió contenido HTML"}), 400
 
         if len(html_content) > MAX_HTML_SIZE:
             return jsonify({"error": "HTML content too large"}), 413
 
-        if len(img_base64) > MAX_IMAGE_SIZE:
-            return jsonify({"error": "Image data too large"}), 413
+        # Imagen puede venir vacía, pero seguimos analizando
+        img_path = None
+        if img_base64:
+            if len(img_base64) > MAX_IMAGE_SIZE:
+                return jsonify({"error": "Image data too large"}), 413
 
-        if not img_base64.startswith("iVBOR") and not img_base64.startswith("/9j/"):
-            return jsonify({"error": "Unsupported image format"}), 415
+            if not img_base64.startswith("iVBOR") and not img_base64.startswith("/9j/"):
+                return jsonify({"error": "Unsupported image format"}), 415
+
+            img_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.png")
+            try:
+                img_data = base64.b64decode(img_base64)
+                with open(img_path, "wb") as f:
+                    f.write(img_data)
+            except Exception as e:
+                with open("/tmp/error.log", "a", encoding="utf-8") as log:
+                    log.write("❌ Error al decodificar imagen: " + str(e) + "\n")
+                return jsonify({"error": "Imagen inválida"}), 400
+        else:
+            print("⚠️ Imagen no enviada. Se usará solo HTML.")
 
         # VERIFICACIÓN CONTRA WHITELIST
         if pertenece_a_whitelist(html_content):
@@ -80,17 +98,6 @@ def analyze_content():
         html_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.html")
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html_content)
-
-        img_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.png")
-        try:
-            img_data = base64.b64decode(img_base64)
-        except Exception as e:
-            with open("/tmp/error.log", "a", encoding="utf-8") as log:
-                log.write("❌ Error al decodificar imagen: " + str(e) + "\n")
-            return jsonify({"error": "Imagen inválida"}), 400
-
-        with open(img_path, "wb") as f:
-            f.write(img_data)
 
         try:
             pred, prob = predict_crawl.predict(img_path, html_path)

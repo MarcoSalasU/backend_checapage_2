@@ -2,8 +2,8 @@ import joblib
 from feature_extract import extract_feature_vector
 
 def predict(img_path, html_path):
+    # Si no hay imagen, usamos None como path
     vector = extract_feature_vector(img_path, html_path)
-
     if vector is None:
         return None, None
 

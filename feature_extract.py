@@ -131,25 +131,24 @@ def feature_vector_extraction(c):
             return None
 
 def feature_vector_extraction_from_img_html(img, html):
-    if os.path.exists(img) and os.path.exists(html):
-        try:
+    try:
+        img_text = ""
+        if os.path.exists(img):
             img_text = get_img_text_ocr(img)
-            text_word_str, num_of_forms, attr_word_str = get_structure_html_text(html)
 
-            img_v = text_embedding_into_vector(img_text)
-            txt_v = text_embedding_into_vector(text_word_str)
-            form_v = text_embedding_into_vector(attr_word_str)
+        text_word_str, num_of_forms, attr_word_str = get_structure_html_text(html)
 
-            # 🔥 Ponderación: Imagen (30%) - HTML (100%)
-            img_v = [0.3 * val for val in img_v]
+        img_v = text_embedding_into_vector(img_text)
+        txt_v = text_embedding_into_vector(text_word_str)
+        form_v = text_embedding_into_vector(attr_word_str)
 
-            final_v = img_v + txt_v + form_v + [num_of_forms]
-            return final_v
-        except Exception as e:
-            with open("/tmp/error.log", "a", encoding="utf-8") as log:
-                log.write("❌ Falla en feature_vector_extraction_from_img_html: " + str(e) + "\n")
-            return None
-    else:
+        img_v = [0.3 * val for val in img_v]  # peso menor para OCR
+
+        final_v = img_v + txt_v + form_v + [num_of_forms]
+        return final_v
+    except Exception as e:
+        with open("/tmp/error.log", "a", encoding="utf-8") as log:
+            log.write("❌ Falla en feature_vector_extraction_from_img_html: " + str(e) + "\n")
         return None
 
 # ✅ FUNCIÓN IMPORTABLE POR predict_crawl.py
